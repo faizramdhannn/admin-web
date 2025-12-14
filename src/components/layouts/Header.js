@@ -5,7 +5,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-export default function Header({ onMenuClick, user }) {
+export default function Header({ onMenuClick, user, pageTitle }) {
   const { theme, toggleTheme } = useTheme();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -35,19 +35,21 @@ export default function Header({ onMenuClick, user }) {
   return (
     <header className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
       <div className="flex items-center justify-between h-16 px-4 md:px-6">
-        {/* Left side - Menu button */}
-        <button
-          onClick={onMenuClick}
-          className="lg:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors"
-        >
-          <Menu className="w-6 h-6" />
-        </button>
+        {/* Left side - Menu button and page title */}
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={onMenuClick}
+            className="lg:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
 
-        {/* Center - Page title (optional, can be used for breadcrumb) */}
-        <div className="flex-1 lg:ml-0 ml-4">
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
-            {/* Page title will be set by individual pages */}
-          </h1>
+          {/* Page title */}
+          {pageTitle && (
+            <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
+              {pageTitle}
+            </h1>
+          )}
         </div>
 
         {/* Right side - Theme toggle and user menu */}

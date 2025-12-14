@@ -35,6 +35,9 @@ module.exports = {
           muted: '#9ca3af',
           border: '#2d2d2d',
         },
+        gray: {
+          750: '#2d3748',
+        },
       },
       boxShadow: {
         'sm-light': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
@@ -43,6 +46,11 @@ module.exports = {
         'sm-dark': '0 1px 2px 0 rgba(0, 0, 0, 0.5)',
         'md-dark': '0 4px 6px -1px rgba(0, 0, 0, 0.7)',
         'lg-dark': '0 10px 15px -3px rgba(0, 0, 0, 0.9)',
+      },
+      zIndex: {
+        '40': '40',
+        '50': '50',
+        '60': '60',
       },
     },
   },

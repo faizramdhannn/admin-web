@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Sidebar from '@/components/layouts/Sidebar';
 import Header from '@/components/layouts/Header';
 import { ThemeProvider } from '@/contexts/ThemeContext';
@@ -9,6 +9,7 @@ import { Toaster } from 'react-hot-toast';
 
 function DashboardContent({ children }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -36,6 +37,23 @@ function DashboardContent({ children }) {
     }
   };
 
+  // Get page title based on pathname
+  const getPageTitle = () => {
+    if (pathname === '/dashboard') return 'Dashboard';
+    if (pathname.startsWith('/invoice-maker')) {
+      if (pathname.includes('/create')) return 'Create Invoice';
+      if (pathname.includes('/edit')) return 'Edit Invoice';
+      if (pathname.includes('/settings')) return 'Invoice Settings';
+      return 'Invoice Maker';
+    }
+    if (pathname.startsWith('/master-item')) {
+      if (pathname.includes('/create')) return 'Create Master Item';
+      if (pathname.includes('/edit')) return 'Edit Master Item';
+      return 'Master Items';
+    }
+    return '';
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -45,13 +63,21 @@ function DashboardContent({ children }) {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
-      <div className="flex-1 flex flex-col overflow-hidden lg:ml-64">
-        <Header onMenuClick={() => setSidebarOpen(true)} user={user} />
+      {/* Main Content Area */}
+      <div className="lg:pl-64">
+        {/* Header */}
+        <Header 
+          onMenuClick={() => setSidebarOpen(true)} 
+          user={user}
+          pageTitle={getPageTitle()}
+        />
         
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+        {/* Page Content */}
+        <main className="p-4 md:p-6">
           {children}
         </main>
       </div>

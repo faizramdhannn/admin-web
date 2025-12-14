@@ -76,10 +76,10 @@ export default function CreateInvoicePage() {
     // If selecting from master item
     if (field === 'name' && value) {
       const selectedItem = masterItems.find(item => 
-        `${item.product_variant} - ${item.sku}` === value
+        `${item.product_variant} - ${item.color_variant}` === value
       );
       if (selectedItem) {
-        newItems[index].value = parseFloat(selectedItem.std_selling || 0);
+        newItems[index].value = parseFloat(selectedItem.hpj_unit || 0);
       }
     }
 
@@ -102,15 +102,23 @@ export default function CreateInvoicePage() {
   };
 
   const calculateSubtotal = () => {
-    return items.reduce((sum, item) => sum + (parseFloat(item.qty) * parseFloat(item.value)), 0);
+    // Jika use_ppn = true, harga sudah include PPN, jadi kita hitung DPP (harga sebelum PPN)
+    // DPP = harga / 1.11
+    const total = items.reduce((sum, item) => sum + (parseFloat(item.qty || 0) * parseFloat(item.value || 0)), 0);
+    return formData.use_ppn ? total / 1.11 : total;
   };
 
   const calculatePPN = () => {
+    // PPN = DPP * 0.11
     return formData.use_ppn ? calculateSubtotal() * 0.11 : 0;
   };
 
   const calculateTotal = () => {
-    return calculateSubtotal() + calculatePPN();
+    // Jika use_ppn = true, total adalah nilai yang diinput (sudah include PPN)
+    // Jika use_ppn = false, total = subtotal (tanpa PPN)
+    return formData.use_ppn 
+      ? items.reduce((sum, item) => sum + (parseFloat(item.qty || 0) * parseFloat(item.value || 0)), 0)
+      : calculateSubtotal();
   };
 
   const validateForm = () => {
@@ -174,10 +182,13 @@ export default function CreateInvoicePage() {
 
   const masterItemOptions = [
     { value: '', label: 'Select item or enter manually' },
-    ...masterItems.map(item => ({
-      value: `${item.product_variant} - ${item.sku}`,
-      label: `${item.product_variant} - ${item.sku} (${formatCurrency(item.std_selling || 0)})`
-    }))
+    ...masterItems
+      .filter(item => item.product_variant && item.color_variant) // Filter out empty items
+      .map((item, index) => ({
+        value: `${item.product_variant} - ${item.color_variant}`,
+        label: `${item.product_variant} - ${item.color_variant}`,
+        key: `master-item-${index}` // Add unique key
+      }))
   ];
 
   return (
@@ -302,20 +313,20 @@ export default function CreateInvoicePage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                   <div className="md:col-span-6">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Item Name
+                    </label>
                     <Select
-                      label="Item Name"
-                      value={item.name}
+                      value={masterItemOptions.some(opt => opt.value === item.name) ? item.name : ''}
                       onChange={(e) => handleItemChange(index, 'name', e.target.value)}
                       options={masterItemOptions}
                     />
-                    {!masterItemOptions.some(opt => opt.value === item.name) && item.name && (
-                      <Input
-                        className="mt-2"
-                        value={item.name}
-                        onChange={(e) => handleItemChange(index, 'name', e.target.value)}
-                        placeholder="Or enter custom item name"
-                      />
-                    )}
+                    <Input
+                      className="mt-2"
+                      value={item.name}
+                      onChange={(e) => handleItemChange(index, 'name', e.target.value)}
+                      placeholder="Or enter custom item name"
+                    />
                   </div>
                   <div className="md:col-span-2">
                     <Input
@@ -329,11 +340,12 @@ export default function CreateInvoicePage() {
                   </div>
                   <div className="md:col-span-4">
                     <Input
-                      label="Unit Price"
+                      label="Unit Price (Include PPN)"
                       type="number"
                       value={item.value}
                       onChange={(e) => handleItemChange(index, 'value', e.target.value)}
                       min="0"
+                      step="0.01"
                       required
                     />
                   </div>
@@ -344,7 +356,7 @@ export default function CreateInvoicePage() {
                     Subtotal: {' '}
                   </span>
                   <span className="font-semibold text-gray-900 dark:text-white">
-                    {formatCurrency(parseFloat(item.qty) * parseFloat(item.value))}
+                    {formatCurrency(parseFloat(item.qty || 0) * parseFloat(item.value || 0))}
                   </span>
                 </div>
               </div>
@@ -364,7 +376,7 @@ export default function CreateInvoicePage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
+                <span className="text-gray-600 dark:text-gray-400">Subtotal (DPP)</span>
                 <span className="font-medium text-gray-900 dark:text-white">
                   {formatCurrency(calculateSubtotal())}
                 </span>
