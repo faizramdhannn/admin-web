@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Search, Edit, Trash2, Eye } from 'lucide-react';
+import { Plus, Search, Edit, Trash2 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table';
 import Badge from '@/components/ui/Badge';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
 export default function MasterItemPage() {
@@ -140,24 +140,28 @@ export default function MasterItemPage() {
                 </TableRow>
               ) : (
                 filteredItems.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.sku}</TableCell>
-                    <TableCell>{item.product_variant}</TableCell>
+                  <TableRow key={item.id || `item-${Math.random()}`}>
+                    <TableCell className="font-medium">{item.sku || '-'}</TableCell>
+                    <TableCell>{item.product_variant || '-'}</TableCell>
                     <TableCell>{item.color_variant || '-'}</TableCell>
                     <TableCell>{item.size_variant || '-'}</TableCell>
                     <TableCell>
                       {item.category ? (
                         <Badge variant="default">{item.category}</Badge>
-                      ) : '-'}
+                      ) : (
+                        '-'
+                      )}
                     </TableCell>
                     <TableCell>
                       {item.grade ? (
                         <Badge variant="primary">{item.grade}</Badge>
-                      ) : '-'}
+                      ) : (
+                        '-'
+                      )}
                     </TableCell>
-                    <TableCell>{formatCurrency(item.hpp_unit || 0)}</TableCell>
+                    <TableCell>{formatCurrency(parseFloat(item.hpp_unit) || 0)}</TableCell>
                     <TableCell className="font-semibold">
-                      {formatCurrency(item.std_selling || 0)}
+                      {formatCurrency(parseFloat(item.std_selling) || 0)}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">

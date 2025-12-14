@@ -7,7 +7,7 @@ import Header from '@/components/layouts/Header';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { Toaster } from 'react-hot-toast';
 
-export default function DashboardLayout({ children }) {
+function DashboardContent({ children }) {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState(null);
@@ -19,8 +19,6 @@ export default function DashboardLayout({ children }) {
 
   const checkAuth = async () => {
     try {
-      // Check if user is authenticated by trying to fetch user data
-      // Since we're using cookies, the auth token will be sent automatically
       const response = await fetch('/api/auth/me');
       
       if (!response.ok) {
@@ -47,19 +45,25 @@ export default function DashboardLayout({ children }) {
   }
 
   return (
+    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      
+      <div className="flex-1 flex flex-col overflow-hidden lg:ml-64">
+        <Header onMenuClick={() => setSidebarOpen(true)} user={user} />
+        
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+}
+
+export default function DashboardLayout({ children }) {
+  return (
     <ThemeProvider>
       <Toaster position="top-right" />
-      <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        
-        <div className="flex-1 flex flex-col overflow-hidden lg:ml-64">
-          <Header onMenuClick={() => setSidebarOpen(true)} user={user} />
-          
-          <main className="flex-1 overflow-y-auto p-4 md:p-6">
-            {children}
-          </main>
-        </div>
-      </div>
+      <DashboardContent>{children}</DashboardContent>
     </ThemeProvider>
   );
 }
