@@ -33,6 +33,11 @@ const menuItems = [
     icon: Settings,
     href: '/invoice-maker/settings',
   },
+  {
+    title: 'PDF Template',
+    icon: FileText, // or use a different icon
+    href: '/invoice-maker/pdf-template',
+  },
 ];
 
 export default function Sidebar({ isOpen, onClose }) {

@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { readSheet } from '@/lib/google-sheets';
+import { getInvoicePDFBlob } from '@/lib/pdf-generator-new'; // ← CHANGED
+import { loadTemplateConfig } from '@/lib/pdf-template'; 
 import { getInvoicePDFBlob } from '@/lib/pdf-generator';
 import { validateSession } from '@/lib/auth';
 import { SHEETS, MAX_INVOICE_ITEMS } from '@/constants/config';
@@ -38,8 +40,9 @@ export async function GET(request, { params }) {
     }
 
     const invoiceData = {
-      ...invoice,
-      items,
+      ...formData,
+      purchase_date: formData.purchase_date, // ← Make sure this is included
+      items: validItems,
     };
 
     // Get settings (optional)

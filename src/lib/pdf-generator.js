@@ -19,18 +19,18 @@ export function generateInvoicePDF(invoice, settings = {}) {
   
   // Header - Company Name dan Invoice
   doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('times', 'bold');
   doc.text(companyName, 14, yPos);
   
   // Invoice di kanan atas
   doc.setFontSize(18);
-  doc.setFont('helvetica', 'italic');
+  doc.setFont('times', 'italic');
   doc.text('Invoice', pageWidth - 14, yPos, { align: 'right' });
   
   // Company Address dan Phone
   yPos += 6;
   doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('times', 'normal');
   doc.text(companyAddress, 14, yPos);
   
   // Invoice number di kanan
@@ -49,11 +49,11 @@ export function generateInvoicePDF(invoice, settings = {}) {
   // Customer Info
   yPos += 8;
   doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('times', 'bold');
   doc.text('Kepada Yth :', 14, yPos);
   
   yPos += 6;
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('times', 'normal');
   doc.text(invoice.customer_name, 14, yPos);
   
   if (invoice.customer_address) {
@@ -88,8 +88,9 @@ export function generateInvoicePDF(invoice, settings = {}) {
     theme: 'grid',
     headStyles: {
       fillColor: [156, 194, 229],
-      textColor: 255,
+      textColor: [0, 32, 96],
       fontStyle: 'bold',
+      font: 'times',
       fontSize: 10,
       halign: 'center',
     },
@@ -122,7 +123,7 @@ export function generateInvoicePDF(invoice, settings = {}) {
       fontSize: 10,
     },
     columnStyles: {
-      0: { cellWidth: 145, halign: 'right', fontStyle: 'bold' },
+      0: { cellWidth: 145, halign: 'center', fontStyle: 'bold' },
       1: { cellWidth: 40, halign: 'right' },
     },
     margin: { left: 14, right: 14 },
@@ -140,7 +141,7 @@ export function generateInvoicePDF(invoice, settings = {}) {
         fontSize: 10,
       },
       columnStyles: {
-        0: { cellWidth: 145, halign: 'right', fontStyle: 'bold' },
+        0: { cellWidth: 145, halign: 'center', fontStyle: 'bold' },
         1: { cellWidth: 40, halign: 'right' },
       },
       margin: { left: 14, right: 14 },
@@ -159,12 +160,12 @@ export function generateInvoicePDF(invoice, settings = {}) {
     },
     bodyStyles: {
       fillColor: [156, 194, 229],
-      textColor: 255,
+      textColor: [0, 32, 96],
       fontSize: 11,
       fontStyle: 'bold',
     },
     columnStyles: {
-      0: { cellWidth: 145, halign: 'right' },
+      0: { cellWidth: 145, halign: 'center' },
       1: { cellWidth: 40, halign: 'right' },
     },
     margin: { left: 14, right: 14 },
@@ -174,7 +175,7 @@ export function generateInvoicePDF(invoice, settings = {}) {
   
   // Terbilang
   doc.setFontSize(10);
-  doc.setFont('helvetica', 'italic');
+  doc.setFont('times', 'italic');
   const terbilang = `Terbilang: ${numberToWords(Math.floor(totalValue))} Rupiah`;
   doc.text(terbilang, 14, yPos);
   
@@ -182,15 +183,15 @@ export function generateInvoicePDF(invoice, settings = {}) {
   yPos += 15;
   
   // Kolom kiri - No Rek
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('times', 'bold');
   doc.text('No Rek :', 14, yPos);
   
   yPos += 6;
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('times', 'normal');
   doc.text(`an. ${accountHolder}`, 14, yPos);
   
   yPos += 5;
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('times', 'bold');
   doc.text(bankAccount, 14, yPos);
   
   // Kolom kanan - Tanggal dan Tanda Tangan
@@ -198,7 +199,7 @@ export function generateInvoicePDF(invoice, settings = {}) {
     const signatureX = pageWidth - 60;
     let signatureY = doc.lastAutoTable.finalY + 8;
     
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('times', 'normal');
     doc.text(`Bandung, ${formatDate(new Date(), { day: 'numeric', month: 'long', year: 'numeric' })}`, signatureX, signatureY);
     
     signatureY += 25; // Space untuk tanda tangan

@@ -35,6 +35,7 @@ export async function POST(request) {
     const {
       invoice_number,
       date,
+      purchase_date, 
       so_number,
       customer_name,
       customer_address,
@@ -73,6 +74,7 @@ export async function POST(request) {
       id,
       invoice_number,
       date || now,
+      purchase_date || date || now,
       so_number || '',
       customer_name,
       customer_address || '',
@@ -96,6 +98,7 @@ export async function POST(request) {
         id,
         invoice_number,
         date,
+        purchase_date: purchase_date || date,
         so_number,
         customer_name,
         customer_address,

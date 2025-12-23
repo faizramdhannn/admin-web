@@ -100,14 +100,29 @@ export default function EditInvoicePage() {
     const newItems = [...items];
     newItems[index][field] = value;
 
+    // If selecting from master item
     if (field === 'name' && value) {
       const selectedItem = masterItems.find(item => {
-        const itemIdentifier = `${item.product_variant} - ${item.color_variant}${item.sku ? ` (SKU: ${item.sku})` : ''}`;
-        return itemIdentifier === value;
+        // Build identifier sama dengan yang di dropdown
+        let identifier = item.product_variant;
+        
+        if (item.color_variant) {
+          identifier += ` - ${item.color_variant}`;
+        }
+        
+        if (item.size_variant) {
+          identifier += ` (${item.size_variant})`;
+        }
+        
+        if (item.sku) {
+          identifier += ` [SKU: ${item.sku}]`;
+        }
+        
+        return identifier === value;
       });
       
       if (selectedItem) {
-        newItems[index].value = parseFloat(selectedItem.hpj_unit || selectedItem.std_selling || 0);
+        newItems[index].value = parseFloat(selectedItem.hpj_unit || 0);
       }
     }
 
@@ -130,20 +145,24 @@ export default function EditInvoicePage() {
   };
 
   const calculateSubtotal = () => {
-    const total = items.reduce((sum, item) => sum + (parseFloat(item.qty || 0) * parseFloat(item.value || 0)), 0);
-    return formData.use_ppn ? total / 1.11 : total;
+    // Jika use_ppn = true, hitung DPP dari total yang include PPN
+    const totalWithPPN = items.reduce((sum, item) => 
+      sum + (parseFloat(item.qty || 0) * parseFloat(item.value || 0)), 0
+    );
+    
+    // DPP = Total (include PPN) / 1.11
+    return formData.use_ppn ? totalWithPPN / 1.11 : totalWithPPN;
   };
 
   const calculatePPN = () => {
+    // PPN = DPP * 0.11
     return formData.use_ppn ? calculateSubtotal() * 0.11 : 0;
   };
 
   const calculateTotal = () => {
-    return formData.use_ppn 
-      ? items.reduce((sum, item) => sum + (parseFloat(item.qty || 0) * parseFloat(item.value || 0)), 0)
-      : calculateSubtotal();
+    // Total = DPP + PPN
+    return calculateSubtotal() + calculatePPN();
   };
-
   const validateForm = () => {
     const newErrors = {};
     
@@ -175,6 +194,7 @@ export default function EditInvoicePage() {
 
     const invoiceData = {
       ...formData,
+      purchase_date: formData.purchase_date, // ← Make sure this is included
       items: validItems,
     };
 
@@ -206,9 +226,22 @@ export default function EditInvoicePage() {
     const seen = new Set();
     
     const uniqueItems = masterItems
-      .filter(item => item.product_variant && item.color_variant)
+      .filter(item => item.product_variant)
       .filter(item => {
-        const identifier = `${item.product_variant}-${item.color_variant}-${item.sku || ''}`;
+        // Create unique identifier
+        let identifier = item.product_variant;
+        
+        if (item.color_variant) {
+          identifier += `-${item.color_variant}`;
+        }
+        
+        if (item.size_variant) {
+          identifier += `-${item.size_variant}`;
+        }
+        
+        if (item.sku) {
+          identifier += `-${item.sku}`;
+        }
         
         if (seen.has(identifier)) {
           return false;
@@ -221,13 +254,24 @@ export default function EditInvoicePage() {
     return [
       { value: '', label: 'Select item or enter manually' },
       ...uniqueItems.map((item) => {
-        const baseName = `${item.product_variant} - ${item.color_variant}`;
-        const displayName = item.sku ? `${baseName} (SKU: ${item.sku})` : baseName;
-        const price = formatCurrency(parseFloat(item.hpj_unit || item.std_selling || 0));
+        // Build display name with all variants
+        let displayName = item.product_variant;
+        
+        if (item.color_variant) {
+          displayName += ` - ${item.color_variant}`;
+        }
+        
+        if (item.size_variant) {
+          displayName += ` (${item.size_variant})`;
+        }
+        
+        if (item.sku) {
+          displayName += ` [SKU: ${item.sku}]`;
+        }
         
         return {
           value: displayName,
-          label: `${displayName} - ${price}`,
+          label: displayName,
         };
       })
     ];
@@ -287,6 +331,14 @@ export default function EditInvoicePage() {
                 required
                 error={errors.date}
               />
+                <Input
+    label="Purchase Date"
+    name="purchase_date"
+    type="date"
+    value={formData.purchase_date}
+    onChange={handleChange}
+    required
+  />
               <Input
                 label="SO Number (Optional)"
                 name="so_number"

@@ -18,6 +18,7 @@ export default function CreateInvoicePage() {
   const [formData, setFormData] = useState({
     invoice_number: '',
     date: parseDateForInput(new Date()),
+    purchase_date: parseDateForInput(new Date()),
     so_number: '',
     customer_name: '',
     customer_address: '',
@@ -76,8 +77,22 @@ export default function CreateInvoicePage() {
     // If selecting from master item
     if (field === 'name' && value) {
       const selectedItem = masterItems.find(item => {
-        const itemIdentifier = `${item.product_variant} - ${item.color_variant}${item.sku ? ` (SKU: ${item.sku})` : ''}`;
-        return itemIdentifier === value;
+        // Build identifier sama dengan yang di dropdown
+        let identifier = item.product_variant;
+        
+        if (item.color_variant) {
+          identifier += ` - ${item.color_variant}`;
+        }
+        
+        if (item.size_variant) {
+          identifier += ` (${item.size_variant})`;
+        }
+        
+        if (item.sku) {
+          identifier += ` [SKU: ${item.sku}]`;
+        }
+        
+        return identifier === value;
       });
       
       if (selectedItem) {
@@ -104,10 +119,13 @@ export default function CreateInvoicePage() {
   };
 
   const calculateSubtotal = () => {
-    // Jika use_ppn = true, harga sudah include PPN, jadi kita hitung DPP (harga sebelum PPN)
-    // DPP = harga / 1.11
-    const total = items.reduce((sum, item) => sum + (parseFloat(item.qty || 0) * parseFloat(item.value || 0)), 0);
-    return formData.use_ppn ? total / 1.11 : total;
+    // Jika use_ppn = true, hitung DPP dari total yang include PPN
+    const totalWithPPN = items.reduce((sum, item) => 
+      sum + (parseFloat(item.qty || 0) * parseFloat(item.value || 0)), 0
+    );
+    
+    // DPP = Total (include PPN) / 1.11
+    return formData.use_ppn ? totalWithPPN / 1.11 : totalWithPPN;
   };
 
   const calculatePPN = () => {
@@ -116,11 +134,8 @@ export default function CreateInvoicePage() {
   };
 
   const calculateTotal = () => {
-    // Jika use_ppn = true, total adalah nilai yang diinput (sudah include PPN)
-    // Jika use_ppn = false, total = subtotal (tanpa PPN)
-    return formData.use_ppn 
-      ? items.reduce((sum, item) => sum + (parseFloat(item.qty || 0) * parseFloat(item.value || 0)), 0)
-      : calculateSubtotal();
+    // Total = DPP + PPN
+    return calculateSubtotal() + calculatePPN();
   };
 
   const validateForm = () => {
@@ -156,6 +171,7 @@ export default function CreateInvoicePage() {
 
     const invoiceData = {
       ...formData,
+      purchase_date: formData.purchase_date, // ← Make sure this is included
       items: validItems,
     };
 
@@ -183,17 +199,25 @@ export default function CreateInvoicePage() {
   };
 
   // ✅ FIXED: Remove duplicates and add SKU to make unique identifiers
-  const getUniqueMasterItemOptions = () => {
+const getUniqueMasterItemOptions = () => {
     const seen = new Set();
     
     const uniqueItems = masterItems
-      .filter(item => item.product_variant && item.color_variant)
+      .filter(item => item.product_variant)
       .filter(item => {
-        // Create unique identifier including SKU
-        const identifier = `${item.product_variant}-${item.color_variant}`;
+        // Create unique identifier
+        let identifier = item.product_variant;
+        
+        if (item.color_variant) {
+          identifier += `-${item.color_variant}`;
+        }
+        
+        if (item.size_variant) {
+          identifier += `-${item.size_variant}`;
+        }
         
         if (seen.has(identifier)) {
-          return false; // Skip duplicate
+          return false;
         }
         
         seen.add(identifier);
@@ -203,8 +227,16 @@ export default function CreateInvoicePage() {
     return [
       { value: '', label: 'Select item or enter manually' },
       ...uniqueItems.map((item) => {
-        const baseName = `${item.product_variant} - ${item.color_variant}`;
-        const displayName = item.sku ? `${baseName} (SKU: ${item.sku})` : baseName;
+        // Build display name with all variants
+        let displayName = item.product_variant;
+        
+        if (item.color_variant) {
+          displayName += ` - ${item.color_variant}`;
+        }
+        
+        if (item.size_variant) {
+          displayName += ` (${item.size_variant})`;
+        }
         
         return {
           value: displayName,
@@ -261,6 +293,14 @@ export default function CreateInvoicePage() {
                 required
                 error={errors.date}
               />
+                <Input
+    label="Purchase Date"
+    name="purchase_date"
+    type="date"
+    value={formData.purchase_date}
+    onChange={handleChange}
+    required
+  />
               <Input
                 label="SO Number (Optional)"
                 name="so_number"
@@ -345,12 +385,6 @@ export default function CreateInvoicePage() {
                       value={masterItemOptions.some(opt => opt.value === item.name) ? item.name : ''}
                       onChange={(e) => handleItemChange(index, 'name', e.target.value)}
                       options={masterItemOptions}
-                    />
-                    <Input
-                      className="mt-2"
-                      value={item.name}
-                      onChange={(e) => handleItemChange(index, 'name', e.target.value)}
-                      placeholder="Or enter custom item name"
                     />
                   </div>
                   <div className="md:col-span-2">

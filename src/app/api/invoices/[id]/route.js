@@ -87,6 +87,7 @@ export async function PUT(request, { params }) {
       id,
       body.invoice_number || existingInvoice.invoice_number,
       body.date || existingInvoice.date,
+      body.purchase_date || existingInvoice.purchase_date || body.date || existingInvoice.date,
       body.so_number || existingInvoice.so_number,
       body.customer_name || existingInvoice.customer_name,
       body.customer_address || existingInvoice.customer_address,
