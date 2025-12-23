@@ -341,9 +341,9 @@ export default function MasterItemPage() {
                                   </p>
                                 </div>
                                 <div>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">Selling Price</p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">HPJ</p>
                                   <p className="font-semibold text-primary-600 dark:text-primary-400">
-                                    {formatCurrency(parseFloat(item.std_selling) || 0)}
+                                    {formatCurrency(parseFloat(item.hpj_unit) || 0)}
                                   </p>
                                 </div>
                               </div>
@@ -393,7 +393,7 @@ export default function MasterItemPage() {
                   <th className="px-6 py-3">Category</th>
                   <th className="px-6 py-3">Grade</th>
                   <th className="px-6 py-3">HPP</th>
-                  <th className="px-6 py-3">Selling Price</th>
+                  <th className="px-6 py-3">HPJ</th>
                   <th className="px-6 py-3">Actions</th>
                 </tr>
               </thead>

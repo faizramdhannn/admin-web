@@ -11,7 +11,9 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = params;
+    // ✅ FIXED: Await params in Next.js 15+
+    const { id } = await params;
+    
     const items = await readSheet(SHEETS.MASTER_ITEMS);
     const item = items.find(i => i.id === id);
 
@@ -37,7 +39,8 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = params;
+    // ✅ FIXED: Await params in Next.js 15+
+    const { id } = await params;
     const body = await request.json();
 
     const rowIndex = await findRowIndexById(SHEETS.MASTER_ITEMS, id);
@@ -93,7 +96,8 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = params;
+    // ✅ FIXED: Await params in Next.js 15+
+    const { id } = await params;
     const rowIndex = await findRowIndexById(SHEETS.MASTER_ITEMS, id);
     
     if (rowIndex === -1) {

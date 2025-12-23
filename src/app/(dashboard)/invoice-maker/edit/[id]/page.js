@@ -101,11 +101,13 @@ export default function EditInvoicePage() {
     newItems[index][field] = value;
 
     if (field === 'name' && value) {
-      const selectedItem = masterItems.find(item => 
-        `${item.product_variant} - ${item.sku}` === value
-      );
+      const selectedItem = masterItems.find(item => {
+        const itemIdentifier = `${item.product_variant} - ${item.color_variant}${item.sku ? ` (SKU: ${item.sku})` : ''}`;
+        return itemIdentifier === value;
+      });
+      
       if (selectedItem) {
-        newItems[index].value = parseFloat(selectedItem.std_selling || 0);
+        newItems[index].value = parseFloat(selectedItem.hpj_unit || selectedItem.std_selling || 0);
       }
     }
 
@@ -128,7 +130,8 @@ export default function EditInvoicePage() {
   };
 
   const calculateSubtotal = () => {
-    return items.reduce((sum, item) => sum + (parseFloat(item.qty) * parseFloat(item.value)), 0);
+    const total = items.reduce((sum, item) => sum + (parseFloat(item.qty || 0) * parseFloat(item.value || 0)), 0);
+    return formData.use_ppn ? total / 1.11 : total;
   };
 
   const calculatePPN = () => {
@@ -136,7 +139,9 @@ export default function EditInvoicePage() {
   };
 
   const calculateTotal = () => {
-    return calculateSubtotal() + calculatePPN();
+    return formData.use_ppn 
+      ? items.reduce((sum, item) => sum + (parseFloat(item.qty || 0) * parseFloat(item.value || 0)), 0)
+      : calculateSubtotal();
   };
 
   const validateForm = () => {
@@ -196,13 +201,39 @@ export default function EditInvoicePage() {
     }
   };
 
-  const masterItemOptions = [
-    { value: '', label: 'Select item or enter manually' },
-    ...masterItems.map(item => ({
-      value: `${item.product_variant} - ${item.sku}`,
-      label: `${item.product_variant} - ${item.sku} (${formatCurrency(item.std_selling || 0)})`
-    }))
-  ];
+  // ✅ FIXED: Remove duplicates and add unique identifiers
+  const getUniqueMasterItemOptions = () => {
+    const seen = new Set();
+    
+    const uniqueItems = masterItems
+      .filter(item => item.product_variant && item.color_variant)
+      .filter(item => {
+        const identifier = `${item.product_variant}-${item.color_variant}-${item.sku || ''}`;
+        
+        if (seen.has(identifier)) {
+          return false;
+        }
+        
+        seen.add(identifier);
+        return true;
+      });
+
+    return [
+      { value: '', label: 'Select item or enter manually' },
+      ...uniqueItems.map((item) => {
+        const baseName = `${item.product_variant} - ${item.color_variant}`;
+        const displayName = item.sku ? `${baseName} (SKU: ${item.sku})` : baseName;
+        const price = formatCurrency(parseFloat(item.hpj_unit || item.std_selling || 0));
+        
+        return {
+          value: displayName,
+          label: `${displayName} - ${price}`,
+        };
+      })
+    ];
+  };
+
+  const masterItemOptions = getUniqueMasterItemOptions();
 
   if (fetching) {
     return (
@@ -313,7 +344,7 @@ export default function EditInvoicePage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {items.map((item, index) => (
-              <div key={index} className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg space-y-4">
+              <div key={`item-${index}`} className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg space-y-4">
                 <div className="flex items-start justify-between">
                   <h4 className="font-medium text-gray-900 dark:text-white">
                     Item {index + 1}
@@ -331,11 +362,19 @@ export default function EditInvoicePage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                   <div className="md:col-span-6">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Item Name
+                    </label>
                     <Select
-                      label="Item Name"
-                      value={item.name}
+                      value={masterItemOptions.some(opt => opt.value === item.name) ? item.name : ''}
                       onChange={(e) => handleItemChange(index, 'name', e.target.value)}
                       options={masterItemOptions}
+                    />
+                    <Input
+                      className="mt-2"
+                      value={item.name}
+                      onChange={(e) => handleItemChange(index, 'name', e.target.value)}
+                      placeholder="Or enter custom item name"
                     />
                   </div>
                   <div className="md:col-span-2">
@@ -350,11 +389,12 @@ export default function EditInvoicePage() {
                   </div>
                   <div className="md:col-span-4">
                     <Input
-                      label="Unit Price"
+                      label="Unit Price (Include PPN)"
                       type="number"
                       value={item.value}
                       onChange={(e) => handleItemChange(index, 'value', e.target.value)}
                       min="0"
+                      step="0.01"
                       required
                     />
                   </div>
@@ -365,11 +405,15 @@ export default function EditInvoicePage() {
                     Subtotal: {' '}
                   </span>
                   <span className="font-semibold text-gray-900 dark:text-white">
-                    {formatCurrency(parseFloat(item.qty) * parseFloat(item.value))}
+                    {formatCurrency(parseFloat(item.qty || 0) * parseFloat(item.value || 0))}
                   </span>
                 </div>
               </div>
             ))}
+
+            {errors.items && (
+              <p className="text-sm text-red-600 dark:text-red-400">{errors.items}</p>
+            )}
           </CardContent>
         </Card>
 
@@ -380,7 +424,7 @@ export default function EditInvoicePage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
+                <span className="text-gray-600 dark:text-gray-400">Subtotal (DPP)</span>
                 <span className="font-medium text-gray-900 dark:text-white">
                   {formatCurrency(calculateSubtotal())}
                 </span>

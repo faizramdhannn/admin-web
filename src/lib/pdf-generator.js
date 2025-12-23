@@ -1,164 +1,213 @@
-import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { formatCurrency, formatDate, numberToWords } from './utils';
 
-export async function generateInvoicePDF(invoice, settings = {}) {
+export function generateInvoicePDF(invoice, settings = {}) {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.width;
   const pageHeight = doc.internal.pageSize.height;
   
-  // Default settings
+  // Default settings - sesuai dengan format invoice Anda
   const companyName = settings.company_name || 'MAHA NAGARI NUSANTARA';
   const companyAddress = settings.company_address || 'Jl. Lembong No. 30 Braga, Kec. Sumur Bandung - Bandung';
   const companyPhone = settings.company_phone || '0812-1432-445';
-  const bankInfo = 'BCA 775-039-4447\na.n. PT. Maha Nagari Nusantara';
+  const bankAccount = 'BCA 775-039-4447';
+  const accountHolder = 'PT. Maha Nagari Nusantara';
   
-  // Header
-  doc.setFontSize(20);
+  // Logo placeholder (jika ada logo URL dari settings)
+  let yPos = 15;
+  
+  // Header - Company Name dan Invoice
+  doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text(companyName, 14, 20);
+  doc.text(companyName, 14, yPos);
   
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Invoice', 14, 28);
+  // Invoice di kanan atas
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'italic');
+  doc.text('Invoice', pageWidth - 14, yPos, { align: 'right' });
   
+  // Company Address dan Phone
+  yPos += 6;
   doc.setFontSize(9);
-  doc.text(companyAddress, 14, 35);
-  doc.text(`Phone: ${companyPhone}`, 14, 40);
+  doc.setFont('helvetica', 'normal');
+  doc.text(companyAddress, 14, yPos);
   
-  // Invoice number (right side)
+  // Invoice number di kanan
   doc.setFontSize(10);
-  doc.text(`#${invoice.invoice_number}`, pageWidth - 14, 20, { align: 'right' });
+  doc.text(`#${invoice.so_number}`, pageWidth - 14, yPos, { align: 'right' });
   
-  // Line separator
-  doc.setLineWidth(0.5);
-  doc.line(14, 45, pageWidth - 14, 45);
+  yPos += 5;
+  doc.setFontSize(9);
+  doc.text(`Phone: ${companyPhone}`, 14, yPos);
   
-  // Customer info
-  let yPos = 55;
+  // Garis pemisah
+  yPos += 8;
+  doc.setLineWidth(0.3);
+  doc.line(14, yPos, pageWidth - 14, yPos);
+  
+  // Customer Info
+  yPos += 8;
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
-  doc.text('Kepada Yth:', 14, yPos);
+  doc.text('Kepada Yth :', 14, yPos);
   
-  yPos += 7;
+  yPos += 6;
   doc.setFont('helvetica', 'normal');
   doc.text(invoice.customer_name, 14, yPos);
   
   if (invoice.customer_address) {
     yPos += 5;
-    const addressLines = doc.splitTextToSize(invoice.customer_address, 80);
+    const addressLines = doc.splitTextToSize(invoice.customer_address, 90);
     doc.text(addressLines, 14, yPos);
     yPos += (addressLines.length * 5);
   }
   
-  // Invoice details (right side)
-  const detailsX = pageWidth - 80;
-  let detailsY = 55;
+  // Table Items
+  yPos += 10;
   
-  const details = [
-    ['Invoice Date:', formatDate(invoice.date)],
-    ['SO Number:', invoice.so_number || '-'],
-  ];
-  
-  details.forEach(([label, value]) => {
-    doc.setFont('helvetica', 'bold');
-    doc.text(label, detailsX, detailsY);
-    doc.setFont('helvetica', 'normal');
-    doc.text(value, detailsX + 30, detailsY);
-    detailsY += 6;
+  // Hitung nilai untuk setiap item
+  const tableData = invoice.items.map((item) => {
+    const qty = parseFloat(item.qty || 0);
+    const unitPrice = parseFloat(item.value || 0);
+    const total = qty * unitPrice;
+    
+    return [
+      qty,
+      item.name,
+      formatCurrency(unitPrice),
+      formatCurrency(total)
+    ];
   });
   
-  // Items table
-  yPos = Math.max(yPos + 10, detailsY + 5);
-  
-  const tableData = invoice.items.map((item, index) => [
-    index + 1,
-    item.name,
-    formatCurrency(item.value),
-    item.qty,
-    formatCurrency(item.qty * item.value),
-  ]);
-  
-  doc.autoTable({
+  // Buat table dengan autoTable - Use autoTable function directly
+  autoTable(doc, {
     startY: yPos,
-    head: [['No', 'Deskripsi', 'Harga Satuan', 'Qty', 'Total']],
+    head: [['Qty', 'Deskripsi', 'Harga Satuan', 'Total']],
     body: tableData,
     theme: 'grid',
     headStyles: {
-      fillColor: [34, 197, 94],
+      fillColor: [156, 194, 229],
       textColor: 255,
       fontStyle: 'bold',
+      fontSize: 10,
+      halign: 'center',
     },
-    styles: {
+    bodyStyles: {
       fontSize: 9,
-      cellPadding: 5,
     },
     columnStyles: {
-      0: { halign: 'center', cellWidth: 15 },
-      1: { cellWidth: 80 },
-      2: { halign: 'right', cellWidth: 30 },
-      3: { halign: 'center', cellWidth: 20 },
-      4: { halign: 'right', cellWidth: 35 },
+      0: { halign: 'center', cellWidth: 20 }, // Qty
+      1: { halign: 'left', cellWidth: 85 },   // Deskripsi
+      2: { halign: 'right', cellWidth: 40 },  // Harga Satuan
+      3: { halign: 'right', cellWidth: 40 },  // Total
     },
+    margin: { left: 14, right: 14 },
   });
   
-  // Summary
-  const finalY = doc.lastAutoTable.finalY + 10;
-  const summaryX = pageWidth - 70;
-  let summaryY = finalY;
+  // Ambil posisi Y setelah table
+  yPos = doc.lastAutoTable.finalY + 2;
   
-  const subtotal = parseFloat(invoice.subtotal || 0);
-  const ppnAmount = parseFloat(invoice.ppn_amount || 0);
-  const total = parseFloat(invoice.total || 0);
+  // Hitung nilai
+  const subtotalValue = parseFloat(invoice.subtotal || 0);
+  const ppnValue = parseFloat(invoice.ppn_amount || 0);
+  const totalValue = parseFloat(invoice.total || 0);
   
-  doc.setFontSize(10);
+  // Row untuk SubTotal
+  autoTable(doc, {
+    startY: yPos,
+    body: [['SubTotal', formatCurrency(subtotalValue)]],
+    theme: 'plain',
+    styles: {
+      fontSize: 10,
+    },
+    columnStyles: {
+      0: { cellWidth: 145, halign: 'right', fontStyle: 'bold' },
+      1: { cellWidth: 40, halign: 'right' },
+    },
+    margin: { left: 14, right: 14 },
+  });
   
-  // Subtotal
-  doc.text('SubTotal', summaryX, summaryY);
-  doc.text(formatCurrency(subtotal), pageWidth - 14, summaryY, { align: 'right' });
-  summaryY += 7;
+  yPos = doc.lastAutoTable.finalY;
   
-  // PPN
+  // Row untuk PPN jika digunakan
   if (invoice.use_ppn === 'true' || invoice.use_ppn === true) {
-    doc.text('PPN', summaryX, summaryY);
-    doc.text(formatCurrency(ppnAmount), pageWidth - 14, summaryY, { align: 'right' });
-    summaryY += 7;
+    autoTable(doc, {
+      startY: yPos,
+      body: [['PPN', formatCurrency(ppnValue)]],
+      theme: 'plain',
+      styles: {
+        fontSize: 10,
+      },
+      columnStyles: {
+        0: { cellWidth: 145, halign: 'right', fontStyle: 'bold' },
+        1: { cellWidth: 40, halign: 'right' },
+      },
+      margin: { left: 14, right: 14 },
+    });
+    
+    yPos = doc.lastAutoTable.finalY;
   }
   
-  // Total
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(12);
-  doc.text('Total Pembayaran', summaryX, summaryY);
-  doc.text(formatCurrency(total), pageWidth - 14, summaryY, { align: 'right' });
-  
-  // Terbilang
-  summaryY += 10;
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'italic');
-  const terbilang = `Terbilang: ${numberToWords(Math.floor(total))} Rupiah`;
-  doc.text(terbilang, 14, summaryY);
-  
-  // Bank info
-  summaryY += 10;
-  doc.setFont('helvetica', 'normal');
-  doc.text('No Rek:', 14, summaryY);
-  summaryY += 5;
-  const bankLines = bankInfo.split('\n');
-  bankLines.forEach(line => {
-    doc.text(line, 14, summaryY);
-    summaryY += 5;
+  // Row untuk Total Pembayaran dengan background biru
+  autoTable(doc, {
+    startY: yPos,
+    body: [['Total Pembayaran', formatCurrency(totalValue)]],
+    theme: 'grid',
+    headStyles: {
+      fillColor: [156, 194, 229],
+    },
+    bodyStyles: {
+      fillColor: [156, 194, 229],
+      textColor: 255,
+      fontSize: 11,
+      fontStyle: 'bold',
+    },
+    columnStyles: {
+      0: { cellWidth: 145, halign: 'right' },
+      1: { cellWidth: 40, halign: 'right' },
+    },
+    margin: { left: 14, right: 14 },
   });
   
-  // Signature
+  yPos = doc.lastAutoTable.finalY + 8;
+  
+  // Terbilang
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'italic');
+  const terbilang = `Terbilang: ${numberToWords(Math.floor(totalValue))} Rupiah`;
+  doc.text(terbilang, 14, yPos);
+  
+  // Info Rekening dan Tanggal/Tanda Tangan
+  yPos += 15;
+  
+  // Kolom kiri - No Rek
+  doc.setFont('helvetica', 'bold');
+  doc.text('No Rek :', 14, yPos);
+  
+  yPos += 6;
+  doc.setFont('helvetica', 'normal');
+  doc.text(`an. ${accountHolder}`, 14, yPos);
+  
+  yPos += 5;
+  doc.setFont('helvetica', 'bold');
+  doc.text(bankAccount, 14, yPos);
+  
+  // Kolom kanan - Tanggal dan Tanda Tangan
   if (invoice.use_signature === 'true' || invoice.use_signature === true) {
-    const signatureY = pageHeight - 60;
-    const signatureX = pageWidth - 70;
+    const signatureX = pageWidth - 60;
+    let signatureY = doc.lastAutoTable.finalY + 8;
     
-    doc.text(`Bandung, ${formatDate(new Date())}`, signatureX, signatureY);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Bandung, ${formatDate(new Date(), { day: 'numeric', month: 'long', year: 'numeric' })}`, signatureX, signatureY);
     
-    // Signature line
-    doc.line(signatureX, signatureY + 20, signatureX + 50, signatureY + 20);
-    doc.text('Meida Kurniawati', signatureX, signatureY + 25);
+    signatureY += 25; // Space untuk tanda tangan
+    
+    // Garis untuk tanda tangan
+    doc.line(signatureX, signatureY, signatureX + 50, signatureY);
+    
+    signatureY += 5;
+    doc.text('Meida Kurniawati', signatureX + 5, signatureY);
   }
   
   return doc;

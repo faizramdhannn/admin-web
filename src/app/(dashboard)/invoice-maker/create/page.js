@@ -75,9 +75,11 @@ export default function CreateInvoicePage() {
 
     // If selecting from master item
     if (field === 'name' && value) {
-      const selectedItem = masterItems.find(item => 
-        `${item.product_variant} - ${item.color_variant}` === value
-      );
+      const selectedItem = masterItems.find(item => {
+        const itemIdentifier = `${item.product_variant} - ${item.color_variant}${item.sku ? ` (SKU: ${item.sku})` : ''}`;
+        return itemIdentifier === value;
+      });
+      
       if (selectedItem) {
         newItems[index].value = parseFloat(selectedItem.hpj_unit || 0);
       }
@@ -180,16 +182,39 @@ export default function CreateInvoicePage() {
     }
   };
 
-  const masterItemOptions = [
-    { value: '', label: 'Select item or enter manually' },
-    ...masterItems
-      .filter(item => item.product_variant && item.color_variant) // Filter out empty items
-      .map((item, index) => ({
-        value: `${item.product_variant} - ${item.color_variant}`,
-        label: `${item.product_variant} - ${item.color_variant}`,
-        key: `master-item-${index}` // Add unique key
-      }))
-  ];
+  // ✅ FIXED: Remove duplicates and add SKU to make unique identifiers
+  const getUniqueMasterItemOptions = () => {
+    const seen = new Set();
+    
+    const uniqueItems = masterItems
+      .filter(item => item.product_variant && item.color_variant)
+      .filter(item => {
+        // Create unique identifier including SKU
+        const identifier = `${item.product_variant}-${item.color_variant}`;
+        
+        if (seen.has(identifier)) {
+          return false; // Skip duplicate
+        }
+        
+        seen.add(identifier);
+        return true;
+      });
+
+    return [
+      { value: '', label: 'Select item or enter manually' },
+      ...uniqueItems.map((item) => {
+        const baseName = `${item.product_variant} - ${item.color_variant}`;
+        const displayName = item.sku ? `${baseName} (SKU: ${item.sku})` : baseName;
+        
+        return {
+          value: displayName,
+          label: displayName,
+        };
+      })
+    ];
+  };
+
+  const masterItemOptions = getUniqueMasterItemOptions();
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -295,7 +320,7 @@ export default function CreateInvoicePage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {items.map((item, index) => (
-              <div key={index} className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg space-y-4">
+              <div key={`item-${index}`} className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg space-y-4">
                 <div className="flex items-start justify-between">
                   <h4 className="font-medium text-gray-900 dark:text-white">
                     Item {index + 1}

@@ -11,7 +11,9 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = params;
+    // ✅ FIXED: Await params in Next.js 15+
+    const { id } = await params;
+    
     const invoices = await readSheet(SHEETS.INVOICES);
     const invoice = invoices.find(inv => inv.id === id);
 
